@@ -1,0 +1,32 @@
+module RFile where
+
+import Prelude
+import System.Dir as D
+import System.FilePath as F
+
+
+pipe = "|   "
+
+getFS :: Integer -> String -> String -> IO Integer
+getFS i s s1 = do
+  printf "%s%s %s" (concat $ replicate (i-1) pipe) "------" s1
+  ls <- D.listDir s
+  vs <-  seqio [ do
+           let fp = s F.</> file
+           v <- F.isDir fp
+           case v of
+             true -> getFS (i+1) fp file
+             false -> do
+               vi <- D.getFileSize fp
+               printf "%s🐶 %-15s: %+5d ✔" (concat $ replicate i pipe) file vi
+               return $ vi
+        | file <- ls]
+  let vs' = (foldl (+) 0 vs)
+  printf "%s-> %d" (concat $ replicate (i-1) pipe) vs'
+  return vs'
+
+
+main :: IO ()
+main = do
+  getFS 1 "." "."
+  return ()
