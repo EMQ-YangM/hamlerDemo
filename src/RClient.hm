@@ -1,0 +1,81 @@
+module RClient where
+
+import Prelude
+import System.Dir as D
+import System.FilePath as F
+import System.IO as SIO
+import Network.UDP (Option(..), Socket, close, openWith, recv, recvTimeout, sendTo)
+import Network.UDP as U
+import Data.Timeout (Timeout(..))
+import Data.Binary (toStr, listToBin)
+import System.Dir as D
+
+start1 :: IO ()
+start1 = do
+  sock <- openWith 8080 [Active false]
+  spawn $ start "backup" 6000
+  loop sock
+  close sock
+ where
+   loop sock0 = do
+     v <- try (recvTimeout sock0 1024 (Timeout 80000))
+     case v of
+       Right (ip, pn, b) -> do
+         case b of
+           <<i>> -> do
+             spawn $ start "backup" (9000 + i)
+             sendTo sock0 ip pn <<1>>
+             println "client process started!"
+             loop sock0
+           _ -> error "strange error"
+       Left e -> do
+         println $ showAny e
+         return ()
+
+start :: String -> Integer ->  IO ()
+start  filePath port = do
+  sock <- openWith port [Active false]
+  println $ "cc start: " <> showAny sock
+  recvloop "" sock
+  close sock
+  where
+   recvloop fileName sock = do
+    v <- try (recvTimeout sock 1024 (Timeout 8000))
+    case v of
+      Right (ip, pn, b) -> do
+            case b of
+              <<"createDir:", res/binary>> -> do
+                 let xs' = case toStr res of
+                                 ['.','/'|xs] -> xs
+                                 ['.'|xs]     -> xs
+                                 xs           -> xs
+                 let addSl vs = if last vs == '/' then vs else vs <> "/"
+
+                 let fp = addSl $ filePath F.</> xs'
+                 D.makeDirs fp
+                 sendTo sock ip pn <<1>>
+                 println $ "create dir " <> fp
+                 recvloop fileName sock
+
+              <<"writeFile:", res/binary>> -> do
+                 let xs' = case toStr res of
+                                 ['.','/'|xs] -> xs
+                                 ['.'|xs]     -> xs
+                                 xs           -> xs
+                 let fname = filePath F.</> xs'
+                 sendTo sock ip pn <<1>>
+
+                 println $ "change loop state " <> fname
+                 recvloop fname sock
+
+              res -> do
+                 SIO.appendFile fileName b
+                 sendTo sock ip pn <<1>>
+
+                 println $ "appendFile " <> fileName
+                 recvloop fileName sock
+      Left e -> do
+        println $ showAny e
+        return ()
+
+

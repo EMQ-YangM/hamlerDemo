@@ -3,30 +3,80 @@ module RFile where
 import Prelude
 import System.Dir as D
 import System.FilePath as F
-
+import System.IO as SIO
+import Network.UDP (Option(..), Socket, close, openWith, recv, recvTimeout, sendTo)
+import Network.UDP as U
+import Data.Timeout (Timeout(..))
+import Data.Binary (toStr, listToBin)
+import System.Dir as D
 
 pipe = "|   "
 
-getFS :: Integer -> String -> String -> IO Integer
-getFS i s s1 = do
-  printf "%s%s %s" (concat $ replicate (i-1) pipe) "------" s1
+action :: Integer -> Socket -> Binary -> IO ()
+action port sock b = do
+  U.send sock "localhost" port b
+  -- U.send sock "192.168.1.196" port b
+  v <- try (recvTimeout sock 1024 (Timeout 2000))
+  case v of
+    Left _ -> do
+      println "timeout happened, resend!!"
+      action port sock b
+    Right (_,_,x) -> case x of
+                       <<1>> -> return ()
+                       _     -> return $ error "some strange happened"
+
+ss :: Binary -> (Binary -> IO ()) -> IO ()
+ss <<bin:1024/binary, res/binary>> sf = sf bin >>= \_ -> ss res sf
+ss <<bin/binary>> sf = sf bin
+
+getFS :: Integer -> Socket -> Integer -> String -> String -> IO Integer
+getFS port sock i s s1 = do
+  action port sock $ listToBin $ "createDir:" <> s
+  printf "%s%s %s ✔" (concat $ replicate (i-1) pipe) "------" s1
   ls <- D.listDir s
+  -- let ls = filter (\v -> v /= "backup") ls'
   vs <-  seqio [ do
            let fp = s F.</> file
            v <- F.isDir fp
            case v of
-             true -> getFS (i+1) fp file
+             true -> getFS port sock (i+1) fp file
              false -> do
+               action port sock $ listToBin $ "writeFile:" <> fp
                vi <- D.getFileSize fp
-               printf "%s🐶 %-15s: %+5d ✔" (concat $ replicate i pipe) file vi
+               bin <- SIO.readFile fp
+               ss bin (action port sock)
+               printf "%s🐶 %-15s: %d ✔" (concat $ replicate i pipe) file vi
                return $ vi
         | file <- ls]
   let vs' = (foldl (+) 0 vs)
   printf "%s-> %d" (concat $ replicate (i-1) pipe) vs'
   return vs'
 
+start :: IO ()
+start = do
+  sock0 <- openWith 7070 [Active false]
+  fileSock <- openWith 5000 [Active false]
+  ls <- D.listDir "./ghcide"
+  action 6000 fileSock $ listToBin $ "createDir:" <> "ghcide"
+  seqio [ do
+            let fp = "./ghcide" F.</> file
+            v <- F.isDir fp
+            if v
+            then do
+                action 8080 sock0 $ listToBin [i]
+                sock1 <- openWith i [Active false]
+                println $ "cc start: " <> showAny sock1
+                spawn $ getFS (9000 + i) sock1 1 ("./ghcide/" <> file) ("./ghcide/" <> file)
+                return ()
+            else do
+                println fp
+                action 6000 fileSock $ listToBin $ "writeFile:" <> fp
+                vi <- D.getFileSize fp
+                bin <- SIO.readFile fp
+                ss bin (action 6000 fileSock)
+                printf "%s🐶 %-15s: %d ✔" (concat $ replicate i pipe) file vi
+                return ()
 
-main :: IO ()
-main = do
-  getFS 1 "." "."
+         | (i, file) <- zip [0 .. (length ls - 1)] ls ]
+
   return ()
