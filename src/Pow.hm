@@ -1,0 +1,59 @@
+module Pow where
+
+import Data.Ring (intDiv)
+import Data.Semiring (mulInt)
+import System.Timer
+import Prelude
+
+-- pow 2 3 = 8
+pow :: Integer -> Integer -> Integer
+pow a 1 = a
+pow a x | x % 2 == 0 = let v = pow a (x `intDiv` 2)
+                       in  v `mulInt` v
+        | otherwise = let v = pow a (x `intDiv` 2)
+                      in  a `mulInt` v `mulInt` v
+
+-- pow0 a x | x % 2 == 0 = pow0 (a * a) (x / 2)-- let v = pow a (x / 2)
+pow0 :: Integer -> Integer -> Integer
+pow0 a 1 = a
+pow0 a x | x % 2 == 0 = let v = pow0 a (x / 2)
+                        in  v * v
+         | otherwise = let v = pow0 a (x / 2)
+                       in  a * v * v
+
+
+pow3 :: Integer -> Integer -> Integer
+pow3 a 1 = a
+pow3 a x | x % 2 == 0 = pow3 (a*a) (x / 2)
+         | otherwise = let v = pow3 a (x / 2)
+                       in  a * v * v
+
+pow1 :: Integer -> Integer -> Integer
+pow1 x0 y0 = f x0 y0
+  where f x y | y % 2 == 0 = f (x `mulInt` x) (y `intDiv` 2)
+              | y == 1     = x
+              | otherwise  = g (x `mulInt` x) (y `intDiv` 2) x
+
+        g x y z | y % 2 == 0 = g (x `mulInt` x) (y `intDiv` 2) z
+                | y == 1 = x `mulInt` z
+                | otherwise = g (x `mulInt` x) (y `intDiv` 2) (x `mulInt` z)
+
+pow2 :: Integer -> Integer -> Integer
+pow2 x0 y0 = f x0 y0
+  where f x y | y % 2 == 0 = f (x * x) (y / 2)
+              | y == 1     = x
+              | otherwise  = g (x * x) (y / 2) x
+
+        g x y z | y % 2 == 0 = g (x * x) (y / 2) z
+                | y == 1 = x * z
+                | otherwise = g (x * x) (y / 2) (x * z)
+
+
+ptest :: (Integer -> Integer -> Integer) -> IO ()
+ptest f = do
+  pid <- getSelf
+  tref <- sendAfter (20 * 1000) pid :timeout
+  void (return (f 2 1280000))
+  Just v <- readTimer tref
+  println $ showAny (20000 - v )
+

@@ -1,0 +1,23 @@
+module CleanString where
+
+import Data.String as String
+import Prelude
+
+checkPasswordLength :: String -> Maybe String
+checkPasswordLength password =
+  case (String.length password > 20) of
+       true  -> Nothing
+       false -> Just password
+
+isSpace :: Char -> Bool
+isSpace ' ' = true
+isSpace '\t' = true
+isSpace '\n' = true
+isSpace _ = false
+
+cleanWhitespace :: String -> String
+cleanWhitespace [] = []
+cleanWhitespace [x|xs]
+  | isSpace x = cleanWhitespace xs
+  | otherwise = [x|cleanWhitespace xs]
+
