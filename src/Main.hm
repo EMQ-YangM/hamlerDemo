@@ -17,8 +17,8 @@ serProcess port = do
      (ip, pn, b) <- recv sock 10
      let v = decode b == <<"message">>
      if v
-        then  sendTo sock ip pn <<1>>
-        else  sendTo sock ip pn <<2>>
+        then  sendTo sock ip pn <<"ok">>
+        else  sendTo sock ip pn <<"failed">>
      recvLoop sock
 
 start :: IO ()
@@ -41,7 +41,7 @@ action sock b port = do
   case v of
     Left _ -> return $ error "timeout happened"
     Right (_,_,x) -> case x of
-                       <<v>> -> return $ v + 1
+                       <<"ok">> -> return 2
                        _     -> return $ error "some strange happened"
 
 test :: TestGroup (Integer -> IO TestResult)

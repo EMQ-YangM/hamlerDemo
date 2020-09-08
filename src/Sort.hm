@@ -4,7 +4,9 @@ import Prelude
 
 quickSort :: forall a. Ord a => [a] -> [a]
 quickSort [] = []
-quickSort [x|xs] = quickSort [v | v <- xs, v <x] ++ [x] ++ quickSort [v | v <-xs , v >= x]
+quickSort [x|xs] = quickSort [v | v <- xs, v <x]
+                ++ [x]
+                ++ quickSort [v | v <-xs , v >= x]
 
 quickSort1 :: forall a. Ord a => [a] -> [a]
 quickSort1 [] = []

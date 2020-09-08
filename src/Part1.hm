@@ -1,0 +1,17 @@
+
+module Part1 where
+
+import Prelude ((-))
+import Prelude as P
+
+a :: Integer
+a = 1
+
+b :: Float
+b = 10.0
+
+fib :: Integer -> Integer
+fib 1 = 1
+fib 2 = 1
+fib n = fib (n-1) P.+ fib (n-2)
+

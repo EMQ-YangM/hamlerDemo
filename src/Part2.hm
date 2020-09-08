@@ -1,0 +1,92 @@
+module Part2 where
+
+import Prelude
+import Data.Map (Map, fromList)
+
+-- 1
+
+a1 :: Boolean
+a1 = true
+
+a2 :: Integer
+a2 = 101
+
+a3 :: Float
+a3 = 1.123
+
+a4 :: Char
+a4 = 'a'
+
+a5 :: String
+a5 = "hello"
+
+
+-- 2
+
+b1 :: Binary
+b1 = <<"hello world!">>
+
+b2 :: Map Integer String
+b2 = #{ 1 => "hello", 2 => "world" }
+
+b3 :: {name :: String, age :: Integer}
+b3 = {name = "Alice", age = 20}
+
+b4 :: [Integer]
+b4 = [1,2,3,4,5,6]
+
+b5 :: (Integer, String)
+b5 = (1, "hello")
+
+
+-- 3
+type Name = String
+type Age = Integer
+type Address = String
+type Number = Integer
+
+data Person = Person Name Age Address
+            | Ident Number
+
+c1 :: Person
+c1 = Person "Alice" 20 "hangZhou"
+
+c2 :: Person
+c2 = Ident 9527
+
+-- 4
+
+e1 :: Integer -> Integer
+e1 x = x + 1
+
+e2 :: Integer -> Integer -> Integer
+e2 x y = x + y
+
+-- 5
+
+length1 :: forall a.[a] -> Integer
+length1 [] = 0
+length1 [_|xs] = 1 + length xs
+
+data Tree a = Branch (Tree a) (Tree a)
+            | Leaf a
+
+d1 :: Tree Integer
+d1 = Branch (Branch (Leaf 1) (Leaf 2)) (Leaf 3)
+
+d2 :: Tree Char
+d2 = Branch (Branch (Leaf 'a') (Leaf 'b')) (Leaf 'c')
+
+d3 :: Tree String
+d3 = Branch (Branch (Leaf "abc") (Leaf "def")) (Leaf "ghi")
+
+
+-- 6
+
+quickSort :: forall a. Ord a => [a] -> [a]
+quickSort [] = []
+quickSort [x|xs] = quickSort [v | v <- xs, v < x]
+                ++ [x]
+                ++ quickSort [v | v <- xs , v >= x]
+
+

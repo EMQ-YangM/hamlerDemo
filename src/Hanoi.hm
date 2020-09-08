@@ -1,0 +1,12 @@
+module Hanoi where
+
+
+import Prelude
+
+hta :: (Integer, String, String, String) -> IO ()
+hta (1, a, b, c) = printf "%s -> %s" a c
+hta (n, a, b, c) = do
+  hta (n-1, a, c, b)
+  hta (1, a, b, c)
+  hta (n-1, b, a, c)
+
